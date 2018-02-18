@@ -12,7 +12,9 @@ env:
   - IMAGINE_DRIVER=gmagick
 
 before_install:
-  - phpenv config-rm xdebug.ini || true
+  - PHP_INI_DIR="$HOME/.phpenv/versions/$(phpenv version-name)/etc/conf.d/"
+  - TRAVIS_INI_FILE="$PHP_INI_DIR/travis.ini"
+  - echo "memory_limit=2048M" >> "$TRAVIS_INI_FILE"
 
 install:
   - |
@@ -29,6 +31,7 @@ install:
             if test "${IMAGINE_DRIVER}" = 'imagick'; then ./.travis/imagick.sh; else PHPUNIT_EXCLUDED_GROUPS="${PHPUNIT_EXCLUDED_GROUPS},ext-imagick"; fi
             if test "${IMAGINE_DRIVER}" = 'gmagick'; then ./.travis/gmagick.sh; else PHPUNIT_EXCLUDED_GROUPS="${PHPUNIT_EXCLUDED_GROUPS},ext-gmagick"; fi
             composer --no-interaction remove --dev --no-update --no-scripts friendsofphp/php-cs-fixer
+            if [ "$TRAVIS_PHP_VERSION" == "7.2" ]; then wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.1.0/php-coveralls.phar; fi
             ;;
     esac
   - php --ri curl || true
@@ -43,7 +46,23 @@ script:
             composer --no-interaction codestyle -- --no-interaction --dry-run --diff -- .
             ;;
         *)
-            composer --no-interaction test -- --exclude-group "${PHPUNIT_EXCLUDED_GROUPS}"
+            if [ "$TRAVIS_PHP_VERSION" == "7.2" ]
+            then
+              composer --no-interaction test-coverage -- --exclude-group "${PHPUNIT_EXCLUDED_GROUPS}"
+            else
+              composer --no-interaction test -- --exclude-group "${PHPUNIT_EXCLUDED_GROUPS}"
+            fi
+            ;;
+    esac
+
+after_success:
+  - |
+    set -o errexit
+    case "${TRAVISOPERATION:-}" in
+        codestyle)
+            ;;
+        *)
+            if [ "$TRAVIS_PHP_VERSION" == "7.2" ]; then php php-coveralls.phar -v; fi
             ;;
     esac
 

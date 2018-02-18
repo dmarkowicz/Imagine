@@ -52,6 +52,7 @@
     },
     "scripts": {
         "test": "simple-phpunit --verbose",
+        "test-coverage": "mkdir -p build/logs && simple-phpunit --verbose --coverage-clover build/logs/clover.xml",
         "codestyle": "php-cs-fixer fix --path-mode=intersection --config=.php_cs.dist"
     }
 }
